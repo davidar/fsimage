@@ -1,0 +1,24 @@
+As fsimage appears to be no longer available[1], I'm republishing it here with a
+few minor alterations:
+
+1) To save space, source archives have been removed. Consequently, if you would
+like to compile fsimage from source, you will need to download the following
+files into guest/src/
+http://ftp.gnu.org/gnu/binutils/binutils-2.15.tar.bz2
+http://www.busybox.net/downloads/legacy/busybox-1.00.tar.bz2
+http://prdownloads.sourceforge.net/e2fsprogs/e2fsprogs-1.35.tar.gz
+http://ftp.gnu.org/gnu/gcc/gcc-3.4.2/gcc-3.4.2.tar.bz2
+http://ftp.gnu.org/gnu/glibc/glibc-2.3.3.tar.bz2
+http://ftp.gnu.org/gnu/glibc/glibc-linuxthreads-2.3.3.tar.bz2
+http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.10.tar.bz2
+http://www.kernel.org/pub/linux/utils/fs/reiserfs/reiserfsprogs-3.6.19.tar.gz
+http://ftp.gnu.org/gnu/tar/tar-1.14.tar.bz2
+
+2) The two original archives[2,3] have been merged. Therefore, to skip the
+compilation step, simply delete/rename guest/Makefile, before running
+./configure && make && make install
+
+
+[1] http://www.smallworks.com/~jim/fsimage/
+[2] http://www.smallworks.com/~jim/fsimage/fsimage-0.1.2.tar.gz
+[3] http://www.smallworks.com/~jim/fsimage/fsimage-0.1.2-guest-src.tar.gz

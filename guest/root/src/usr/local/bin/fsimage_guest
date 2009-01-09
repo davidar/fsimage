@@ -1,0 +1,81 @@
+#!/bin/sh
+#
+# fsimage - a filesystem creation tool, Copyright (C) 2004 Magnus Damm
+#
+# this file contains the guest-os part of the fsimage tool
+
+fsimage_version=0.1.1
+
+get_fsimage_file ()
+{
+  while read line
+  do
+    if [ "`echo $line | cut -d '=' -f 1`" = "fsimage_file" ]; then
+      echo "$line" | cut -d '=' -f 2
+    fi
+  done
+}
+
+fsimage_file=`cat /proc/cmdline | tr " " "\n" | get_fsimage_file`
+
+if [ -z "$fsimage_file" ]; then
+  # spawn shell if no fsimage_file
+
+  /bin/sh
+  exit 0
+fi
+
+if [ "$fsimage_file" = "none" ]; then  
+  # show versions mode
+
+  echo "fsimage $fsimage_version"
+  cat /proc/version
+  busybox
+  tar --version | head -n 1
+  mkfs.ext2 -V
+  mkreiserfs -V >/dev/null
+  exit 0
+fi
+
+guestfile=/tmp/`basename "$fsimage_file"`
+
+hostcat "$fsimage_file" > "$guestfile"
+
+if [ $? -ne 0 ]; then
+  echo "$0: unable to hostcat \"$fsimage_file\"." >&2
+  exit 1
+fi
+
+. "$guestfile"
+
+if [ $? -ne 0 ]; then
+  echo "$0: unable to source \"$guestfile\"." >&2
+  exit 1
+fi
+
+cnt=0
+
+while :
+do
+  v="cmd$cnt"
+  f="f () { echo \"\$$v\" ; }"
+  eval $f
+  x="`f`"
+  if [ -n "$x" ]; then
+    echo "cmd$cnt='$x'"
+    eval "$x"
+    if [ $? -ne 0 ]; then
+      echo "unable to perform \"$x\"." >&2
+      exit 1
+    fi
+    cnt=$(($cnt + 1))
+  else
+    break
+  fi
+done
+
+if [ $cnt -eq 0 ]; then
+  # no commands, must be interactive mode
+
+  /bin/sh
+fi

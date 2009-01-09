@@ -1,0 +1,239 @@
+#
+# fsimage - a filesystem tool, Copyright (C) 2004,2005 Magnus Damm
+
+fsimage_version=0.1.2
+
+# qemu stuff
+
+qemu=/usr/bin/qemu
+cmdline="console=ttyS0,9600 clock=pit ip=on apm=power-off"
+cmdline_version="$cmdline fsimage_file=none"
+
+run_qemu ()
+{
+  "$qemu" -m 32 -nics 1 -isa -user-net -nographic -tftp / -kernel "$guest" -append "$cmdline" "$image"
+}
+
+# parse fsimage-specific options first
+
+verbose=0
+do_help=
+do_version=
+image=
+tmpdir=
+
+while :
+do
+  end=
+  case "$1" in
+  -v) verbose=`echo $verbose + 1 | bc` ; shift ;;
+  --with-qemu=*) qemu=`echo "$1" | cut -d "=" -f 2` ; shift ;;
+  --with-guest=*) guest=`echo "$1" | cut -d "=" -f 2` ; shift ;;
+  --with-tmpdir=*) tmpdir=`echo "$1" | cut -d "=" -f 2` ; shift ;;
+
+  -f) shift ; image=$1 ; shift ;; 
+  --help) do_help=yes ; shift ;;
+  --version) do_version=yes ; shift ;;
+
+  *) end=yes ;;
+  esac
+
+  if [ -n "$end" ]; then
+    break
+  fi
+done
+
+usage () {
+  cat <<EOF
+usage: fsimage [fsimage-options] -f image [ command [ ";" command [ ... ] ] ]
+EOF
+}
+
+if [ -n "$do_help" ] ; then
+  cat <<EOF
+fsimage $fsimage_version, Copyright (C) 2004,2005 Magnus Damm
+
+A scriptable filesystem tool. Manages filesystems without root permission.
+
+EOF
+  usage
+  cat <<EOF
+
+fsimage options:
+
+-v                    verbose mode
+-f image              use image as guest /dev/hda (image must already exist)
+--with-qemu=qemu      select qemu binary
+--with-guest=guest    select guest os kernel
+--with-tmpdir=tmpdir  use tmpdir to store tempfiles
+--help                show help
+--version             show version information
+
+EOF
+
+  if [ $verbose -eq 0 ]; then
+    echo "Use verbose option (-v) together with --help to show some examples."
+  else
+    cat <<EOF
+
+Creates an ext3 filesystem on the file "image.ext3":
+fsimage -v -f image.ext3 \\
+  yes "|" mkfs.ext3 /dev/hda
+
+Creates an reiserfs filesystem on the file "image.reiserfs", and unpacks
+the archive "/tmp/contents.tar" on the filesystem:
+fsimage -v -f image.reiserfs \\
+  yes "|" mkreiserfs -f /dev/hda ";" \\
+  mount -t reiserfs /dev/hda /mnt ";" \\
+  cd /mnt ";" \\
+  hostcat /tmp/contents.tar "|" tar -xv ";" \\
+  cd / ";" \\
+  umount /mnt
+
+Transfers a script from host and runs it inside the guest environment:
+fsimage -v -f image \\
+  hostcat /home/damm/custom_script ">" /tmp/x ";" \\
+  . /tmp/x
+
+Please note that the hostcat function only supports absolute filenames.
+
+EOF
+  fi
+  exit 0
+fi
+
+if [ -n "$do_version" ] ; then
+  cat <<EOF
+fsimage $fsimage_version
+
+fsimage scripts and build environment:
+Copyright (C) 2004,2005 Magnus Damm <damm@opensource.se>
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+fsimage would never exist without the free software written by numerous
+people and organizations, many thanks to them. See the guest software source 
+code for full copyright and license information.
+
+EOF
+  if [ $verbose -eq 0 ]; then
+    echo "Use verbose option (-v) to get version information from guest image."
+  else
+    echo "Getting versions from guest image, please wait..."
+    cmdline="$cmdline_version"
+    image="$qemu" # stupid workaround
+    run_qemu
+  fi
+  exit 0
+fi
+
+if [ $verbose -gt 1 ]; then
+  echo "dumping variables:"
+  echo "verbose=$verbose"
+  echo "qemu=$qemu"
+  echo "guest=$guest"
+  echo "image=$image"
+fi
+
+if [ -z "$image" ]; then
+  echo "fatal: image not set" >&2
+  usage
+  exit 1
+fi
+
+if [ ! -x "$qemu" ]; then
+  echo "fatal: not able to execute qemu binary \"$qemu\"." >&2
+  exit 1
+fi
+
+if [ ! -f "$guest" ]; then
+  echo "fatal: guest file \"$guest\" not found." >&2
+  exit 1
+fi
+
+if [ ! -f "$image" ]; then
+  echo "fatal: image file \"$image\" not found." >&2
+  exit 1
+fi
+
+if [ -z "$tmpdir" ]; then
+  if [ -n "$TMPDIR" ]; then
+    tmpdir="$TMPDIR"
+  else
+    if [ -n "$TEMPDIR" ]; then
+      tmpdir="$TEMPDIR"
+    else
+      tmpdir="/tmp"
+    fi
+  fi
+fi
+
+tmpfile="${tmpdir}/fsimage-${RANDOM}-$$-${RANDOM}"
+
+trap "rm -f \"$tmpfile\"; exit" 0 1 2 15
+
+exec 3>"$tmpfile"
+
+if [ $? -ne 0 ]; then
+  echo "fatal: unable to write tempfile" >&2
+  exit 1
+fi
+
+store_cmd () 
+{
+  echo "cmd$1='$2'" >&3
+  if [ $verbose -gt 1 ]; then
+    echo "cmd$1='$2'"
+  fi
+  return 0
+}
+
+# get each command chunk and write it to a tempfile
+
+cmd=
+cnt=0
+
+for e
+do
+  case "$e" in
+  \;)
+    if [ -n "$cmd" ]; then
+      store_cmd $cnt "$cmd"
+      cnt=`echo $cnt + 1 | bc`
+      cmd=
+    fi
+    ;;
+
+  \||\>)
+    cmd="$cmd$e"
+    ;;
+
+  *)
+    if [ -n "$cmd" ]; then
+      cmd="$cmd "
+    fi
+    cmd="$cmd\"$e\""
+    ;;
+  esac
+done
+
+if [ -n "$cmd" ]; then
+  store_cmd $cnt "$cmd"
+fi
+
+# run qemu and pass temp-filename on kernel command line
+
+cmdline="$cmdline fsimage_file=$tmpfile"
+
+if [ $# -eq 0 ]; then
+  verbose=1
+  echo "Running fsimage in interactive mode..."
+fi
+
+if [ $verbose -gt 0 ]; then
+  run_qemu
+else
+  run_qemu >/dev/null
+fi
+
+exit 0

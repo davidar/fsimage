@@ -1,0 +1,35 @@
+0.1.2: 20050222 - first public release
+  Upgraded linux kernel to 2.6.10, removed merged kernel autoconfig patch.
+  Removed patches for qemu-0.6.0, now a unpatched 0.6.1 is required.
+  fsimage script update, fixed several typos.
+  Added swapon and mkswap to busybox configuration.
+  Updated copyright to include 2005.
+  Updated the documentation, added note about buggy cpio.
+
+0.1.1: 20041101
+  Passed "apm=power-off" on kernel command line. (to support SMP kernels)
+  Created various nodes in /dev during startup.
+  Broke out hostcat, now available in /usr/local/bin/
+  Added hostclean and hostdistclean rules to Makefile.
+  Make sure library-dependencies are checked. (librt.so.1 -> libpthread.so.0)
+  Updated crosstool to crosstool-0.28-rc37.
+  Changed crosstool setup: binutils-2.15, gcc-3.4.2, glibc-2.3.3, linux-2.6.9.
+  Updated kernel to linux-2.6.9, removed qemu-fast support, but still HZ=100.
+  Modified kernel config to support kernel modules.
+  Updated busybox to busybox-1.00.
+  Modified busybox config to support kernel modules.
+  Updated reiserfsprogs to reiserfsprogs-3.6.19.
+
+0.1.0: 20040817
+  Initial version.
+  Included software:
+   crosstool-0.28-rc31
+   linux-2.4.21
+   binutils-2.13.90.0.2
+   gcc-2.95.3
+   glibc-2.1.3
+   linux-2.6.8.1
+   busybox-1.00-rc3
+   tar-1.14
+   e2fsprogs-1.35
+   reiserfsprogs-3.6.17

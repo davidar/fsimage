@@ -1,0 +1,22 @@
+#!/bin/sh
+
+prefix=/usr/local
+
+while :
+do
+  if [ $# -gt 0 ]; then
+    case "$1" in
+    --prefix=*) prefix=`echo "$1" | cut -d "=" -f 2`; shift ;;
+    *) echo "unsupported option \"$1\"." >&2 ; exit 1 ;;
+    esac
+  else
+    break
+  fi
+done
+
+echo "PREFIX=$prefix" > Make.conf
+
+echo "fsimage configuration:"
+echo "prefix: \"$prefix\""
+echo
+echo "now use \"make\" and \"make install\"."

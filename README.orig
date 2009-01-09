@@ -1,0 +1,49 @@
+README for fsimage                                                 20050222
+ 
+fsimage is a scriptable filesystem tool. The beauty of fsimage is that it is
+a small linux distribution that runs inside the qemu emulator, providing access
+to filesystems that is both independent of host kernel or operating system and
+root permissions.
+
+The code for fsimage is available in two versions. The version suitable for 
+most users [1] contains a precompiled x86-image and a shell script. The more 
+advanced version [2] is a collection of all sources required to build the 
+x86-image, including a x86 cross compiler - complete with scripts to automate
+the build procedure.
+
+fsimage requires qemu to run, at least 0.6.1. fsimage needs the integrated 
+tftp server in qemu so versions prior 0.6.1 will not work. fsimage expects to 
+find qemu in /usr/bin/qemu.
+
+Sources for qemu are not included. Only qemu-0.6.1 is tested.
+
+Please note that the bzImage generated from the sources should be around
+3 MiB large. If the size of the bzImage is very different (11-21 MiB) then
+it is very likely that you have a buggy cpio-2.6 installed on your host.
+
+Version 0.1.2 of fsimage contains the following software:
+
+crosstool-0.28-rc37
+linux-2.6.10
+binutils-2.15
+gcc-3.4.2
+glibc-2.3.3
+busybox-1.00
+tar-1.14
+e2fsprogs-1.35
+reiserfsprogs-3.6.19
+
+fsimage has been developed under Gentoo Linux on a PowerPC platform.
+The binary should in theory work on almost any operating system, as long as the
+platform is supported by qemu and a bourne-compatible shell is available.
+
+Installation: ./configure && make && make install
+Usage: Try fsimage --help to get started.
+
+Enjoy!
+
+/ magnus <damm@opensource.se>
+
+[1] fsimage-<version>.tar.gz
+[2] fsimage-<version>-guest-src.tar.gz
+
